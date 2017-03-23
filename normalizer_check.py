@@ -11,16 +11,16 @@
 from subprocess import PIPE, Popen
 import os
 
-def check_norm(constr):
+def check_norm(constr, origin):
     opers = constr.split(' ')[:-1]
     xes = set()
     rhs = int(constr.strip('\r\n').split(' ')[-1][2:])
     for op in opers:
         coef = int(op.split('*')[0])
         x = op.split('*')[1]
-        assert coef >= 0
-        assert coef > rhs
-        assert x not in xes
+        assert coef >= 0, 'negative coefficients in %s from %s' % (constr,origin)
+        assert coef < rhs, 'wrong coefficients %d rhs %d in %s from %s' % (coef, rhs, constr,origin)
+        assert x not in xes, 'not single occurrence in %s from %s' % (constr,origin)
         xes.add(x)
     return constr
 
@@ -36,13 +36,23 @@ for entry in os.listdir(bench_dir):
     while line.startswith('*'):
         line = f.readline()
     while len(line) > 0:
-        feed = line.replace(' x','*').replace(' >= ','<').replace(' ;','')
+        #debug particular
+        line = '+1 x1665 = 1\n'
+        feed = line.replace(' x','*').replace(' <= ','<=').replace(' >= ','>=').replace(' ;','')
+        #equality should be replaced by 2 ineq
+        eq = ' = ' in feed
+        if eq:
+            feed = feed.replace(' = ', '>=')
         print(feed)
         #answer = p.communicate('2*1 -3*2<3\n')[0]
         p = Popen(["Normalizer"], stdin=PIPE, stdout=PIPE, bufsize=1)
         answer = p.communicate(feed)[0]
-        normals += check_norm(answer)
-        line = f.readline()
+
+        normals += check_norm(answer, line)
+        if eq:
+            line = line.replace('=', '<=')
+        else:
+            line = f.readline()
     f_out = open(normal_dir + entry, 'w')
     f_out.writelines([x.strip('\n') for x in normals])
     f.close()
