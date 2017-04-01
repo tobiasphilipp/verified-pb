@@ -42,4 +42,6 @@ def form_dimacs(cnfs):
     print(dimacs_file)
 
 cnfs = apply_swc('bench_normal/tr.txt')
+with open('bench_normal/tr_bad.txt', 'r') as f_bad:
+    cnfs += [x.strip('\n') for x in f_bad]
 form_dimacs(cnfs)
